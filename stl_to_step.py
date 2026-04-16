@@ -1,13 +1,12 @@
 """
 STL → STEP 変換スクリプト（FreeCAD 1.1 用）
 使い方:
-    freecadcmd.exe stl_to_step.py
+    "C:\\Users\\shige\\AppData\\Local\\Programs\\FreeCAD 1.1\\bin\\freecadcmd.exe" stl_to_step.py
 """
 
 import sys
 import os
 
-# FreeCAD モジュールパス（freecadcmd.exe 経由で実行する場合は自動設定済み）
 try:
     import FreeCAD
     import Part
@@ -20,8 +19,7 @@ except ImportError:
 BASE_DIR = r"L:\home\prj\NongSoftLLC\projects\10_current\基板作成\押しボタンボックス"
 
 files = [
-    ("ps15_box_body.stl", "ps15_box_body.step"),
-    ("ps15_lid.stl",      "ps15_lid.step"),
+    ("ps15_box_half.stl", "ps15_box_half.step"),
 ]
 
 for stl_name, step_name in files:
@@ -34,15 +32,11 @@ for stl_name, step_name in files:
         print(f"  SKIP: {stl_path} が見つかりません")
         continue
 
-    # 新規ドキュメント
     doc = FreeCAD.newDocument("convert")
 
-    # STL メッシュ読み込み
-    mesh_obj = doc.addObject("Mesh::Feature", "Mesh")
     Mesh.insert(stl_path, doc.Name)
     doc.recompute()
 
-    # メッシュオブジェクトを取得
     mesh_feature = None
     for obj in doc.Objects:
         if obj.TypeId == "Mesh::Feature":
@@ -54,16 +48,16 @@ for stl_name, step_name in files:
         FreeCAD.closeDocument(doc.Name)
         continue
 
-    # Mesh → Shape 変換（MeshPart モジュール）
-    shape = MeshPart.meshToShape(mesh_feature.Mesh, True)
+    shape = Part.Shape()
+    shape.makeShapeFromMesh(mesh_feature.Mesh.Topology, 0.1, False)
 
     if shape.isNull():
         print("  ERROR: Shape 変換に失敗しました（メッシュが複雑すぎる可能性）")
         FreeCAD.closeDocument(doc.Name)
         continue
 
-    # STEP 出力
-    shape.exportStep(step_path)
+    solid = Part.Solid(Part.Shell(shape.Faces))
+    solid.exportStep(step_path)
     print(f"  OK: {step_path}")
 
     FreeCAD.closeDocument(doc.Name)
