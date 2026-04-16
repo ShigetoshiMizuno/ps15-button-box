@@ -285,17 +285,10 @@ module half_body() {
         mating_sockets();
 
         // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
-        // Y=5 下方に "NongSoft LLC"、Y=42 上方に "2026"（ボタン穴φ30は中心 OUTER_W/2, OUTER_D/2）
-        translate([OUTER_W / 2, 5, BOT_T - 0.5 - 0.1])
+        // Y=4.5, X=OUTER_W/2+5 に "NongSoft LLC"（前左ボス φ10@(9,9) を回避し右にオフセット）
+        translate([OUTER_W / 2 + 5, 4.5, BOT_T - 0.5 - 0.1])
             linear_extrude(height = 0.6)
                 text("NongSoft LLC",
-                     size   = 3.0,
-                     font   = "Liberation Sans:style=Bold",
-                     halign = "center",
-                     valign = "center");
-        translate([OUTER_W / 2, OUTER_D - 5, BOT_T - 0.5 - 0.1])
-            linear_extrude(height = 0.6)
-                text("2026",
                      size   = 3.0,
                      font   = "Liberation Sans:style=Bold",
                      halign = "center",
