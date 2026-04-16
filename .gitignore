@@ -10,3 +10,12 @@ desktop.ini
 # Editor temp files
 *.bak
 *~
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OpenSCAD intermediate export formats (only .stl / .step are tracked)
+*.3mf
+*.amf
+*.off
