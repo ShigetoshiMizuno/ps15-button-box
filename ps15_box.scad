@@ -347,8 +347,8 @@ module half_body() {
                     cylinder(d = BOSS_OD, h = BOSS_H);
             }
 
-            // ③ 位置合わせ凸（4壁楔形方式）
-            mating_bumps();
+            // ③ 位置合わせ凸（4壁楔形方式・一時無効化）
+            // mating_bumps();
 
             // ⑨ スナップフィットドーム（合わせ面・点対称配置）
             snap_bumps();
@@ -387,8 +387,8 @@ module half_body() {
         translate([OUTER_W / 2, OUTER_D / 2, -0.1])
             cylinder(d = BTN_HOLE_D + hole_comp, h = BOT_T + 0.2);
 
-        // ⑧ 位置合わせ凹（4壁楔形ソケット）
-        mating_sockets();
+        // ⑧ 位置合わせ凹（4壁楔形ソケット・一時無効化）
+        // mating_sockets();
 
         // ⑩ スナップフィット受け穴
         snap_holes();
