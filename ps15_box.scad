@@ -118,8 +118,8 @@ cut_y = 50;            // [0:1:50]
 cut_z = 25;            // [0:1:25]
 
 /* [出力] */
-// 0: ビュー（並置）  1: ハーフ単体（STL出力用・1種類のみ）
-render_part = 0;       // [0:ビュー, 1:ハーフ単体]
+// 0: ビュー（並置）  1: ハーフ単体（STL出力用）  2: ツイスト確認（上ハーフ45°回転）
+render_part = 0;       // [0:ビュー, 1:ハーフ単体, 2:ツイスト確認]
 // FDM 収縮補正: 穴径を指定値だけ拡大（ボス等の外形には不適用）
 hole_comp = 0.2;       // [0:0.05:0.5]
 
@@ -475,8 +475,18 @@ module section_cut(axis) {
 // ============================================================
 if (render_part == 1) {
     // ハーフ単体（STL出力用）: 天面を上にして原点に出力
-    // スライサーで「そのまま平置き」で印刷可（天面が上 = 印刷面は底面）
     half_body();
+} else if (render_part == 2) {
+    // ツイスト確認: 下ハーフ正立 + 上ハーフを45°回転した「差し込み直前」状態
+    // タブがスロットに合っているか目視確認用
+    color("SteelBlue", 0.9) half_body();
+    color("Orange", 0.7)
+        translate([OUTER_W/2, OUTER_D/2, 2*HALF_H])
+            rotate([0, 0, 45])
+                translate([-OUTER_W/2, -OUTER_D/2, 0])
+                    translate([OUTER_W, 0, 0])
+                        rotate([180, 0, 180])
+                            half_body();
 } else if (show_section) {
     difference() {
         main_model();
