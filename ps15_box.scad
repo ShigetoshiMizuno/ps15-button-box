@@ -255,10 +255,11 @@ module mating_sockets() {
 //      フックは +X 方向に SNAP_HOOK 突出（係合面は -Y 側が垂直、+Y 側に 45°テーパー）
 //    組立時: 上ハーフ（反転）の左壁爪（反転後 X=OUTER_W-WALL 付近）が
 //            下ハーフの左壁受け穴に嵌まる
+//    Y位置: OUTER_D/4（socket は 3D/4 → 重ならない）
 // ============================================================
 module snap_arm_left() {
     arm_x = WALL;
-    arm_y = OUTER_D / 2 - SNAP_ARM_W / 2;
+    arm_y = OUTER_D / 4 - SNAP_ARM_W / 2;
     arm_z = HALF_H - SNAP_ARM_T - 1.0;
     // アーム本体
     translate([arm_x, arm_y, arm_z])
@@ -278,10 +279,11 @@ module snap_arm_left() {
 // ============================================================
 //  モジュール: スナップフィット爪（右壁・XY平面内撓み）
 //    右壁（X=OUTER_W）内面から -X 方向（内側）にフック突出（左壁の X 軸対称版）
+//    Y位置: OUTER_D*3/4（socket は D/4 → 重ならない）
 // ============================================================
 module snap_arm_right() {
     arm_x = OUTER_W - WALL - SNAP_ARM_L;
-    arm_y = OUTER_D / 2 - SNAP_ARM_W / 2;
+    arm_y = OUTER_D * 3 / 4 - SNAP_ARM_W / 2;
     arm_z = HALF_H - SNAP_ARM_T - 1.0;
     // アーム本体
     translate([arm_x, arm_y, arm_z])
@@ -303,10 +305,11 @@ module snap_arm_right() {
 //    左壁内面（X=WALL）側に掘る溝。
 //    反転した上ハーフの左壁爪（反転後: フックが -X 向き）がここに嵌まる。
 //    反転変換: 爪 X=WALL+SNAP_ARM_L（先端）→ OUTER_W-(WALL+SNAP_ARM_L)
-//              爪 Y=OUTER_D/2→OUTER_D-OUTER_D/2=OUTER_D/2（Y中央は不変）
+//              爪 Y=OUTER_D*3/4→OUTER_D-OUTER_D*3/4=OUTER_D/4（Y: 右壁 arm D/4 に対応）
 //              爪 Z=HALF_H-1.0（上端）→ 2*HALF_H-(HALF_H-1.0)=HALF_H+1.0
 //              → 受け穴は合わせ面（Z=HALF_H）から下に掘り下げる
 //    受け穴: アーム通過溝 + フック返し分の段差
+//    Y位置: OUTER_D*3/4（arm は D/4 → 重ならない）
 // ============================================================
 module snap_socket_left() {
     sock_clear = 0.2;
@@ -317,12 +320,12 @@ module snap_socket_left() {
     sock_z = HALF_H - sock_t - 1.0 + sock_clear; // 合わせ面基準でアーム高さに合わせた Z
 
     // アーム通過溝（左壁内面から内側へ）
-    translate([WALL - 0.1, OUTER_D / 2 - sock_w / 2, sock_z - sock_clear])
+    translate([WALL - 0.1, OUTER_D * 3 / 4 - sock_w / 2, sock_z - sock_clear])
         cube([sock_depth + 0.1, sock_w, sock_t + sock_clear]);
 
     // フック受け段差（アーム先端 X=WALL+sock_depth 位置から +X 方向に hook_depth）
     // 上ハーフ反転後のフックは +X 方向に突出するため、受け穴も +X 側に広げる
-    translate([WALL + sock_depth, OUTER_D / 2 - sock_w / 2, sock_z - sock_clear])
+    translate([WALL + sock_depth, OUTER_D * 3 / 4 - sock_w / 2, sock_z - sock_clear])
         cube([hook_depth, sock_w, sock_t + sock_clear]);
 }
 
@@ -330,6 +333,7 @@ module snap_socket_left() {
 //  モジュール: スナップフィット受け穴（右壁）
 //    右壁内面（X=OUTER_W-WALL）側に掘る溝（左壁受け穴の X 軸対称版）。
 //    反転した上ハーフの右壁爪（反転後: フックが +X 向き）がここに嵌まる。
+//    Y位置: OUTER_D/4（arm は 3D/4 → 重ならない）
 // ============================================================
 module snap_socket_right() {
     sock_clear = 0.2;
@@ -340,11 +344,11 @@ module snap_socket_right() {
     sock_z = HALF_H - sock_t - 1.0 + sock_clear;
 
     // アーム通過溝（右壁内面から内側へ）
-    translate([OUTER_W - WALL - sock_depth, OUTER_D / 2 - sock_w / 2, sock_z - sock_clear])
+    translate([OUTER_W - WALL - sock_depth, OUTER_D / 4 - sock_w / 2, sock_z - sock_clear])
         cube([sock_depth + 0.1, sock_w, sock_t + sock_clear]);
 
     // フック受け段差（アーム先端 X=OUTER_W-WALL-sock_depth 位置から -X 方向に hook_depth）
-    translate([OUTER_W - WALL - sock_depth - hook_depth, OUTER_D / 2 - sock_w / 2, sock_z - sock_clear])
+    translate([OUTER_W - WALL - sock_depth - hook_depth, OUTER_D / 4 - sock_w / 2, sock_z - sock_clear])
         cube([hook_depth, sock_w, sock_t + sock_clear]);
 }
 
