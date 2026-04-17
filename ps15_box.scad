@@ -1,5 +1,5 @@
 // ============================================================
-//  PS-15 スイッチボックス（1ボタン）v10 — 上下同一ハーフ設計
+//  PS-15 スイッチボックス（1ボタン）v11 — 上下同一ハーフ設計
 //  対象: Seimitsu PS-15
 //  単位: mm
 // ============================================================
@@ -93,6 +93,12 @@ WIRE_D = 10.0;   // 合体時の円径（各ハーフは半円切り欠き）
 SNAP_BUMP_R  = 1.2;   // バンプ半球半径（受け穴より 0.1mm 大きく → 干渉クリック）
 SNAP_HOLE_R  = 1.1;   // 受け穴半径
 SNAP_HOLE_D  = 1.0;   // 受け穴深さ（mm）
+
+/* ─── ツイストロック（バヨネット）─── */
+TWIST_TAB_W  = 6.0;   // タブ幅（壁方向）
+TWIST_TAB_H  = 2.5;   // タブ高さ（Z 方向突出量）
+TWIST_TAB_T  = 1.5;   // タブ厚（壁厚方向）
+TWIST_CLEAR  = 0.3;   // スロットクリアランス
 
 /* ─── 算出値 ─── */
 OUTER_W = INNER_W + 2 * WALL;   // 47.0mm
@@ -280,6 +286,40 @@ module snap_holes() {
 }
 
 // ============================================================
+//  モジュール: ツイストロックタブ（バヨネット凸）— union() 内で呼ぶ
+//    合わせ面（Z=HALF_H）から +Z 方向に突出するタブ。
+//    前壁外面（Y=0 側）: X=OUTER_W/4 中心
+//    後壁外面（Y=OUTER_D 側）: X=OUTER_W*3/4（点対称）
+//    45° ひねりでスロット位置（X=3/4, X=1/4）に噛み合う。
+// ============================================================
+module twist_tabs() {
+    // 前壁タブ: X=OUTER_W/4 中心、壁外面（Y=0 外側）から Z 方向に突出
+    translate([OUTER_W/4 - TWIST_TAB_W/2, -TWIST_TAB_T, HALF_H])
+        cube([TWIST_TAB_W, TWIST_TAB_T, TWIST_TAB_H]);
+    // 後壁タブ: X=OUTER_W*3/4（点対称）
+    translate([OUTER_W*3/4 - TWIST_TAB_W/2, OUTER_D, HALF_H])
+        cube([TWIST_TAB_W, TWIST_TAB_T, TWIST_TAB_H]);
+}
+
+// ============================================================
+//  モジュール: ツイストロックスロット（バヨネット凹）— difference() 内で呼ぶ
+//    45° 回転状態でタブが通過できる切り欠き。
+//    前壁 X=OUTER_W*3/4（タブ位置 X=W/4 と点対称）
+//    後壁 X=OUTER_W/4（タブ位置 X=3W/4 と点対称）
+// ============================================================
+module twist_slots() {
+    sw = TWIST_TAB_W + 2 * TWIST_CLEAR;
+    st = TWIST_TAB_T + TWIST_CLEAR;
+    sh = TWIST_TAB_H + TWIST_CLEAR;
+    // 前壁スロット: X=OUTER_W*3/4 中心
+    translate([OUTER_W*3/4 - sw/2, -st, HALF_H - TWIST_CLEAR])
+        cube([sw, st, sh + TWIST_CLEAR]);
+    // 後壁スロット: X=OUTER_W/4（点対称）
+    translate([OUTER_W/4 - sw/2, OUTER_D, HALF_H - TWIST_CLEAR])
+        cube([sw, st, sh + TWIST_CLEAR]);
+}
+
+// ============================================================
 //  モジュール: ハーフ本体（上下共通・1種類のみ）
 //    原点 = 底面外側・前左コーナー
 //    天面（Z = HALF_H 側）: ボタン穴 + カウンターボア（反転時に上に来る）
@@ -312,6 +352,9 @@ module half_body() {
 
             // ⑨ スナップフィットドーム（合わせ面・点対称配置）
             snap_bumps();
+
+            // ⑪ ツイストロックタブ（前後壁外面・45°ひねりロック）
+            twist_tabs();
         }
 
         // ④ インサート下穴（底面外側から・底板 + ボスを貫通）
@@ -349,6 +392,9 @@ module half_body() {
 
         // ⑩ スナップフィット受け穴
         snap_holes();
+
+        // ⑫ ツイストロックスロット（前後壁・点対称配置）
+        twist_slots();
 
         // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
         // Y=4.5, X=OUTER_W/2+5 に "NongSoft LLC"（前左ボス φ10@(9,9) を回避し右にオフセット）
@@ -393,7 +439,7 @@ module main_model() {
 bolt_path = (BOT_T - CBORE_H) + INNER_H_HALF + INNER_H_HALF;
 recommended_bolt = ceil((bolt_path + INSERT_L) / 5) * 5;  // 5mm単位で切り上げ
 
-echo("=== PS-15 Box v10 上下同一ハーフ設計（開口カップ）===");
+echo("=== PS-15 Box v11 上下同一ハーフ設計（開口カップ）===");
 echo(str("外寸 W×D（組立時）:   ", OUTER_W, " × ", OUTER_D, " mm（コーナー R", CORNER_R, "）"));
 echo(str("外寸 H（組立時）:     ", 2 * HALF_H, " mm（各ハーフ ", HALF_H, " mm）"));
 echo(str("各ハーフ内高（開口）: ", INNER_H_HALF, " mm（底板 ", BOT_T, " mm + 開口内高 ", INNER_H_HALF, " mm）"));
@@ -404,6 +450,7 @@ echo(str("インサート下穴:       φ", PILOT_D, " mm × ", PILOT_DEPTH, " m
 echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（4壁各2点・点対称配置・接線クリア", SOCK_CLEAR, " mm／一定）"));
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("スナップフィット:      バンプ R", SNAP_BUMP_R, " / 受け穴 R", SNAP_HOLE_R, " × D", SNAP_HOLE_D, " mm（合わせ面・点対称2点・干渉クリック）"));
+echo(str("ツイストロック:        タブ W", TWIST_TAB_W, " × H", TWIST_TAB_H, " × T", TWIST_TAB_T, " mm（前後壁外面・45°ひねりロック）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
 echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
 echo(str("M3 ボルト経路:        ", bolt_path, " mm（cbore残し ", BOT_T - CBORE_H, " mm + 上ハーフ内高 ", INNER_H_HALF, " mm + 下ハーフ内高 ", INNER_H_HALF, " mm）"));
