@@ -253,14 +253,12 @@ module mating_sockets() {
 //    反転後: バンプ(W/4)→受け穴(W/4)、バンプ(3W/4)→受け穴(3W/4) が対応。
 // ============================================================
 module snap_bumps() {
-    // バンプ: X=OUTER_W/4, Y=OUTER_D/2（合わせ面から +Z 突出）
-    translate([OUTER_W / 4, OUTER_D / 2, HALF_H])
-        sphere(r = SNAP_BUMP_R);
-    // 点対称: X=OUTER_W*3/4 にも同じバンプ（反転後に受け穴と対応するため）
-    // 反転変換 x→OUTER_W-x: OUTER_W/4 → OUTER_W*3/4, OUTER_W*3/4 → OUTER_W/4
-    // → 上ハーフのバンプ(3/4) が下ハーフの受け穴(3/4) に、下ハーフのバンプ(1/4) が上ハーフの受け穴(1/4) に入る
-    translate([OUTER_W * 3 / 4, OUTER_D / 2, HALF_H])
-        sphere(r = SNAP_BUMP_R);
+    // 前壁断面中央（Y=WALL/2）に配置 → 壁の固体材料に接続
+    translate([OUTER_W / 4,       WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
+    translate([OUTER_W * 3 / 4,   WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
+    // 後壁断面中央（Y=OUTER_D-WALL/2）にも配置（4点でより確実なスナップ）
+    translate([OUTER_W / 4,       OUTER_D - WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
+    translate([OUTER_W * 3 / 4,   OUTER_D - WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
 }
 
 // ============================================================
@@ -269,11 +267,15 @@ module snap_bumps() {
 //    点対称配置: X=OUTER_W/4 と X=OUTER_W*3/4 の2点。
 // ============================================================
 module snap_holes() {
-    // 受け穴: X=OUTER_W/4, Y=OUTER_D/2（合わせ面から -Z 方向に掘る）
-    translate([OUTER_W / 4, OUTER_D / 2, HALF_H - SNAP_HOLE_D])
+    // 前壁（Y=WALL/2）
+    translate([OUTER_W / 4,       WALL / 2,            HALF_H - SNAP_HOLE_D])
         cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
-    // X=OUTER_W*3/4 にも受け穴
-    translate([OUTER_W * 3 / 4, OUTER_D / 2, HALF_H - SNAP_HOLE_D])
+    translate([OUTER_W * 3 / 4,   WALL / 2,            HALF_H - SNAP_HOLE_D])
+        cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
+    // 後壁（Y=OUTER_D-WALL/2）
+    translate([OUTER_W / 4,       OUTER_D - WALL / 2,  HALF_H - SNAP_HOLE_D])
+        cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
+    translate([OUTER_W * 3 / 4,   OUTER_D - WALL / 2,  HALF_H - SNAP_HOLE_D])
         cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
 }
 
