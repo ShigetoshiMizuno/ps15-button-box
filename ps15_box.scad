@@ -1,5 +1,5 @@
 // ============================================================
-//  PS-15 スイッチボックス（1ボタン）v11 — 上下同一ハーフ設計
+//  PS-15 スイッチボックス（1ボタン）v12 — 上下同一ハーフ設計
 //  対象: Seimitsu PS-15
 //  単位: mm
 // ============================================================
@@ -99,6 +99,9 @@ TWIST_TAB_W  = 6.0;   // タブ幅（壁方向）
 TWIST_TAB_H  = 2.5;   // タブ高さ（Z 方向突出量）
 TWIST_TAB_T  = 1.5;   // タブ厚（壁厚方向）
 TWIST_CLEAR  = 0.3;   // スロットクリアランス
+
+/* ─── ヘリカルランプ ─── */
+RAMP_H = 3.0;   // ランプ高さ（Z方向・左端と右端の高低差）
 
 /* ─── 算出値 ─── */
 OUTER_W = INNER_W + 2 * WALL;   // 47.0mm
@@ -320,6 +323,29 @@ module twist_slots() {
 }
 
 // ============================================================
+//  モジュール: ヘリカルランプ（前後壁上端・90°ひねりロック用傾斜面）
+//    前壁（Y=0〜WALL）: X=0（低=HALF_H）→ X=OUTER_W（高=HALF_H+RAMP_H）
+//    後壁（Y=OUTER_D-WALL〜OUTER_D）: X=0（高=HALF_H+RAMP_H）→ X=OUTER_W（低=HALF_H）
+//    前後で点対称 → 上ハーフ90°ひねりでZ方向に引き込まれてロック。
+// ============================================================
+module helix_ramps() {
+    // 前壁ランプ: X=0でZ=HALF_H、X=OUTER_WでZ=HALF_H+RAMP_H
+    hull() {
+        translate([0, 0, HALF_H])
+            cube([0.01, WALL, 0.01]);
+        translate([OUTER_W - 0.01, 0, HALF_H + RAMP_H])
+            cube([0.01, WALL, 0.01]);
+    }
+    // 後壁ランプ: X=0でZ=HALF_H+RAMP_H、X=OUTER_WでZ=HALF_H（点対称）
+    hull() {
+        translate([0, OUTER_D - WALL, HALF_H + RAMP_H])
+            cube([0.01, WALL, 0.01]);
+        translate([OUTER_W - 0.01, OUTER_D - WALL, HALF_H])
+            cube([0.01, WALL, 0.01]);
+    }
+}
+
+// ============================================================
 //  モジュール: ハーフ本体（上下共通・1種類のみ）
 //    原点 = 底面外側・前左コーナー
 //    天面（Z = HALF_H 側）: ボタン穴 + カウンターボア（反転時に上に来る）
@@ -355,6 +381,9 @@ module half_body() {
 
             // ⑪ ツイストロックタブ（前後壁外面・45°ひねりロック）
             twist_tabs();
+
+            // ⑬ ヘリカルランプ（前後壁・90°ひねりZ引き込みロック用傾斜面）
+            helix_ramps();
         }
 
         // ④ インサート下穴（底面外側から・底板 + ボスを貫通）
@@ -439,7 +468,7 @@ module main_model() {
 bolt_path = (BOT_T - CBORE_H) + INNER_H_HALF + INNER_H_HALF;
 recommended_bolt = ceil((bolt_path + INSERT_L) / 5) * 5;  // 5mm単位で切り上げ
 
-echo("=== PS-15 Box v11 上下同一ハーフ設計（開口カップ）===");
+echo("=== PS-15 Box v12 上下同一ハーフ設計（開口カップ）===");
 echo(str("外寸 W×D（組立時）:   ", OUTER_W, " × ", OUTER_D, " mm（コーナー R", CORNER_R, "）"));
 echo(str("外寸 H（組立時）:     ", 2 * HALF_H, " mm（各ハーフ ", HALF_H, " mm）"));
 echo(str("各ハーフ内高（開口）: ", INNER_H_HALF, " mm（底板 ", BOT_T, " mm + 開口内高 ", INNER_H_HALF, " mm）"));
@@ -451,6 +480,7 @@ echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDG
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("スナップフィット:      バンプ R", SNAP_BUMP_R, " / 受け穴 R", SNAP_HOLE_R, " × D", SNAP_HOLE_D, " mm（合わせ面・点対称2点・干渉クリック）"));
 echo(str("ツイストロック:        タブ W", TWIST_TAB_W, " × H", TWIST_TAB_H, " × T", TWIST_TAB_T, " mm（前後壁外面・45°ひねりロック）"));
+echo(str("ヘリカルランプ:        前後壁上端に傾斜 RAMP_H=", RAMP_H, "mm（90°ひねりZ引き込み）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
 echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
 echo(str("M3 ボルト経路:        ", bolt_path, " mm（cbore残し ", BOT_T - CBORE_H, " mm + 上ハーフ内高 ", INNER_H_HALF, " mm + 下ハーフ内高 ", INNER_H_HALF, " mm）"));
