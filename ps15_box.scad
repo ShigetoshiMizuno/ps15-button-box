@@ -94,15 +94,6 @@ SNAP_BUMP_R  = 1.2;   // バンプ半球半径（受け穴より 0.1mm 大きく
 SNAP_HOLE_R  = 1.1;   // 受け穴半径
 SNAP_HOLE_D  = 1.0;   // 受け穴深さ（mm）
 
-/* ─── ツイストロック（バヨネット）─── */
-TWIST_TAB_W  = 6.0;   // タブ幅（壁方向）
-TWIST_TAB_H  = 2.5;   // タブ高さ（Z 方向突出量）
-TWIST_TAB_T  = 1.5;   // タブ厚（壁厚方向）
-TWIST_CLEAR  = 0.3;   // スロットクリアランス
-
-/* ─── ヘリカルランプ ─── */
-RAMP_H = 3.0;   // ランプ高さ（Z方向・左端と右端の高低差）
-
 /* ─── 算出値 ─── */
 OUTER_W = INNER_W + 2 * WALL;   // 47.0mm
 OUTER_D = INNER_D + 2 * WALL;   // 47.0mm
@@ -121,8 +112,8 @@ cut_y = 50;            // [0:1:50]
 cut_z = 25;            // [0:1:25]
 
 /* [出力] */
-// 0: ビュー（並置）  1: ハーフ単体（STL出力用）  2: ツイスト確認（上ハーフ45°回転）
-render_part = 0;       // [0:ビュー, 1:ハーフ単体, 2:ツイスト確認]
+// 0: ビュー  1: ハーフ単体（STL出力用）
+render_part = 0;       // [0:ビュー, 1:ハーフ単体]
 // FDM 収縮補正: 穴径を指定値だけ拡大（ボス等の外形には不適用）
 hole_comp = 0.2;       // [0:0.05:0.5]
 
@@ -258,91 +249,25 @@ module mating_sockets() {
 // ============================================================
 //  モジュール: スナップフィットドーム バンプ — union() 内で呼ぶ
 //    合わせ面（Z=HALF_H）から +Z 方向に半球を突出させる。
-//    点対称配置: X=OUTER_W/4 と X=OUTER_W*3/4 の2点。
-//    反転後: バンプ(W/4)→受け穴(W/4)、バンプ(3W/4)→受け穴(3W/4) が対応。
+//    前壁 X=OUTER_W/3 の1点のみ。
+//    反転後: バンプ(W/3) → x'=OUTER_W-W/3=2W/3 → 受け穴(2W/3) に噛み合う。
+//    mating 配置（W/4, 3W/4）と干渉しない位置。
 // ============================================================
 module snap_bumps() {
-    // 前壁断面中央（Y=WALL/2）に配置 → 壁の固体材料に接続
-    translate([OUTER_W / 4,       WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
-    translate([OUTER_W * 3 / 4,   WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
-    // 後壁断面中央（Y=OUTER_D-WALL/2）にも配置（4点でより確実なスナップ）
-    translate([OUTER_W / 4,       OUTER_D - WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
-    translate([OUTER_W * 3 / 4,   OUTER_D - WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
+    // 前壁断面中央（X=OUTER_W/3、mating 配置と干渉しない）
+    translate([OUTER_W / 3, WALL / 2, HALF_H]) sphere(r = SNAP_BUMP_R);
 }
 
 // ============================================================
 //  モジュール: スナップフィットドーム 受け穴 — difference() 内で呼ぶ
 //    合わせ面（Z=HALF_H）から -Z 方向に受け穴を掘る。
-//    点対称配置: X=OUTER_W/4 と X=OUTER_W*3/4 の2点。
+//    前壁 X=OUTER_W*2/3 の1点のみ。
+//    反転したバンプ(W/3→2W/3) を受ける位置に配置。
 // ============================================================
 module snap_holes() {
-    // 前壁（Y=WALL/2）
-    translate([OUTER_W / 4,       WALL / 2,            HALF_H - SNAP_HOLE_D])
+    // 前壁（Y=WALL/2、X=OUTER_W*2/3）
+    translate([OUTER_W * 2 / 3, WALL / 2, HALF_H - SNAP_HOLE_D])
         cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
-    translate([OUTER_W * 3 / 4,   WALL / 2,            HALF_H - SNAP_HOLE_D])
-        cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
-    // 後壁（Y=OUTER_D-WALL/2）
-    translate([OUTER_W / 4,       OUTER_D - WALL / 2,  HALF_H - SNAP_HOLE_D])
-        cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
-    translate([OUTER_W * 3 / 4,   OUTER_D - WALL / 2,  HALF_H - SNAP_HOLE_D])
-        cylinder(r = SNAP_HOLE_R, h = SNAP_HOLE_D + 0.1);
-}
-
-// ============================================================
-//  モジュール: ツイストロックタブ（バヨネット凸）— union() 内で呼ぶ
-//    合わせ面（Z=HALF_H）から +Z 方向に突出するタブ。
-//    前壁外面（Y=0 側）: X=OUTER_W/4 中心
-//    後壁外面（Y=OUTER_D 側）: X=OUTER_W*3/4（点対称）
-//    45° ひねりでスロット位置（X=3/4, X=1/4）に噛み合う。
-// ============================================================
-module twist_tabs() {
-    // 前壁タブ: X=OUTER_W/4 中心、壁外面（Y=0 外側）から Z 方向に突出
-    translate([OUTER_W/4 - TWIST_TAB_W/2, -TWIST_TAB_T, HALF_H])
-        cube([TWIST_TAB_W, TWIST_TAB_T, TWIST_TAB_H]);
-    // 後壁タブ: X=OUTER_W*3/4（点対称）
-    translate([OUTER_W*3/4 - TWIST_TAB_W/2, OUTER_D, HALF_H])
-        cube([TWIST_TAB_W, TWIST_TAB_T, TWIST_TAB_H]);
-}
-
-// ============================================================
-//  モジュール: ツイストロックスロット（バヨネット凹）— difference() 内で呼ぶ
-//    45° 回転状態でタブが通過できる切り欠き。
-//    前壁 X=OUTER_W*3/4（タブ位置 X=W/4 と点対称）
-//    後壁 X=OUTER_W/4（タブ位置 X=3W/4 と点対称）
-// ============================================================
-module twist_slots() {
-    sw = TWIST_TAB_W + 2 * TWIST_CLEAR;
-    st = TWIST_TAB_T + TWIST_CLEAR;
-    sh = TWIST_TAB_H + TWIST_CLEAR;
-    // 前壁スロット: X=OUTER_W*3/4 中心
-    translate([OUTER_W*3/4 - sw/2, -st, HALF_H - TWIST_CLEAR])
-        cube([sw, st, sh + TWIST_CLEAR]);
-    // 後壁スロット: X=OUTER_W/4（点対称）
-    translate([OUTER_W/4 - sw/2, OUTER_D, HALF_H - TWIST_CLEAR])
-        cube([sw, st, sh + TWIST_CLEAR]);
-}
-
-// ============================================================
-//  モジュール: ヘリカルランプ（前後壁上端・90°ひねりロック用傾斜面）
-//    前壁（Y=0〜WALL）: X=0（低=HALF_H）→ X=OUTER_W（高=HALF_H+RAMP_H）
-//    後壁（Y=OUTER_D-WALL〜OUTER_D）: X=0（高=HALF_H+RAMP_H）→ X=OUTER_W（低=HALF_H）
-//    前後で点対称 → 上ハーフ90°ひねりでZ方向に引き込まれてロック。
-// ============================================================
-module helix_ramps() {
-    // 前壁ランプ: X=0でZ=HALF_H、X=OUTER_WでZ=HALF_H+RAMP_H
-    hull() {
-        translate([0, 0, HALF_H])
-            cube([0.01, WALL, 0.01]);
-        translate([OUTER_W - 0.01, 0, HALF_H + RAMP_H])
-            cube([0.01, WALL, 0.01]);
-    }
-    // 後壁ランプ: X=0でZ=HALF_H+RAMP_H、X=OUTER_WでZ=HALF_H（点対称）
-    hull() {
-        translate([0, OUTER_D - WALL, HALF_H + RAMP_H])
-            cube([0.01, WALL, 0.01]);
-        translate([OUTER_W - 0.01, OUTER_D - WALL, HALF_H])
-            cube([0.01, WALL, 0.01]);
-    }
 }
 
 // ============================================================
@@ -373,17 +298,11 @@ module half_body() {
                     cylinder(d = BOSS_OD, h = BOSS_H);
             }
 
-            // ③ 位置合わせ凸（4壁楔形方式・一時無効化）
-            // mating_bumps();
+            // ③ 位置合わせ凸（4壁楔形方式）
+            mating_bumps();
 
             // ⑨ スナップフィットドーム（合わせ面・点対称配置）
             snap_bumps();
-
-            // ⑪ ツイストロックタブ（前後壁外面・45°ひねりロック）
-            twist_tabs();
-
-            // ⑬ ヘリカルランプ（前後壁・90°ひねりZ引き込みロック用傾斜面）
-            helix_ramps();
         }
 
         // ④ インサート下穴（底面外側から・底板 + ボスを貫通）
@@ -416,14 +335,11 @@ module half_body() {
         translate([OUTER_W / 2, OUTER_D / 2, -0.1])
             cylinder(d = BTN_HOLE_D + hole_comp, h = BOT_T + 0.2);
 
-        // ⑧ 位置合わせ凹（4壁楔形ソケット・一時無効化）
-        // mating_sockets();
+        // ⑧ 位置合わせ凹（4壁楔形ソケット）
+        mating_sockets();
 
         // ⑩ スナップフィット受け穴
         snap_holes();
-
-        // ⑫ ツイストロックスロット（前後壁・点対称配置）
-        twist_slots();
 
         // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
         // Y=4.5, X=OUTER_W/2+5 に "NongSoft LLC"（前左ボス φ10@(9,9) を回避し右にオフセット）
@@ -479,8 +395,6 @@ echo(str("インサート下穴:       φ", PILOT_D, " mm × ", PILOT_DEPTH, " m
 echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（4壁各2点・点対称配置・接線クリア", SOCK_CLEAR, " mm／一定）"));
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("スナップフィット:      バンプ R", SNAP_BUMP_R, " / 受け穴 R", SNAP_HOLE_R, " × D", SNAP_HOLE_D, " mm（合わせ面・点対称2点・干渉クリック）"));
-echo(str("ツイストロック:        タブ W", TWIST_TAB_W, " × H", TWIST_TAB_H, " × T", TWIST_TAB_T, " mm（前後壁外面・45°ひねりロック）"));
-echo(str("ヘリカルランプ:        前後壁上端に傾斜 RAMP_H=", RAMP_H, "mm（90°ひねりZ引き込み）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
 echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
 echo(str("M3 ボルト経路:        ", bolt_path, " mm（cbore残し ", BOT_T - CBORE_H, " mm + 上ハーフ内高 ", INNER_H_HALF, " mm + 下ハーフ内高 ", INNER_H_HALF, " mm）"));
@@ -506,17 +420,6 @@ module section_cut(axis) {
 if (render_part == 1) {
     // ハーフ単体（STL出力用）: 天面を上にして原点に出力
     half_body();
-} else if (render_part == 2) {
-    // ツイスト確認: 下ハーフ正立 + 上ハーフを45°回転した「差し込み直前」状態
-    // タブがスロットに合っているか目視確認用
-    color("SteelBlue", 0.9) half_body();
-    color("Orange", 0.7)
-        translate([OUTER_W/2, OUTER_D/2, 2*HALF_H])
-            rotate([0, 0, 45])
-                translate([-OUTER_W/2, -OUTER_D/2, 0])
-                    translate([OUTER_W, 0, 0])
-                        rotate([180, 0, 180])
-                            half_body();
 } else if (show_section) {
     difference() {
         main_model();
