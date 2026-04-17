@@ -1,5 +1,5 @@
 // ============================================================
-//  PS-15 スイッチボックス（1ボタン）v7 — 上下同一ハーフ設計
+//  PS-15 スイッチボックス（1ボタン）v14 — 上下同一ハーフ設計
 //  対象: Seimitsu PS-15
 //  単位: mm
 // ============================================================
@@ -12,9 +12,9 @@
 //    下ハーフ: 天面を上（正立）に置く
 //    上ハーフ: ひっくり返して（天面を下向き）下ハーフに重ねる
 //              → ボタン穴が最上面に来る
-//    固定   : 対角2点 M3ボルト（長さは echo 参照）
+//    固定   : 4コーナー M3ボルト（長さは echo 参照）
 //
-//  【固定方式（対角2点）】
+//  【固定方式（4コーナー）】
 //    インサートナット（M3）を下ハーフ底面外側から熱圧入
 //    上ハーフ（反転）天面のカウンターボアからボルトを通す
 //
@@ -25,14 +25,11 @@
 //  【配線】全4壁（前後左右）合わせ面に半円切り欠き（2ハーフ合体で円φ10mm）
 //          連接時（daisy-chain）に各方向へケーブルが通せる
 //
-//  【位置合わせ（南北のみ・合わせ面 楔形方式・点対称配置）】
-//    前後壁の合わせ面（Z=HALF_H）に台形押出しの楔凸/凹を配置。
-//    接線方向テーパー 10→8mm、法線方向 壁厚一杯 2.0mm、高さ 5mm。
-//    左右壁は平面（東西方向は対角2点M3ボルトで拘束し過剰拘束を回避）。
-//    点対称配置: 前壁 凸(W/4)+凹(3W/4)、後壁 凸(3W/4)+凹(W/4)
-//      → 反射(x,y,z)→(W-x,y,2H-z) で 凸↔凹 が噛み合う
-//    Socket は接線テーパー付き（開口10.4→奥8.4mm、凸と同方向・クリア0.2mm／片側一定）
-//    凸のハの字 ＋ 凹の同方向テーパー ＝ 位置決めキー効果（接線方向の自動センタリング）
+//  【位置合わせ（ラップジョイント・段継ぎ方式）】
+//    E/W（東西）壁の合わせ面（Z=HALF_H）に段差δ=1.5mm の舌（凸）と溝（凹）を設ける。
+//    下ハーフ E 壁に舌、W 壁に溝。反転した上ハーフは E/W が入れ替わり凸↔凹が噛み合う。
+//    南(+Y) → 北(-Y) スライドで嵌合・自己ストップ。
+//    変換: (x,y,z) → (OUTER_W-x, y, 2*HALF_H-z)
 //
 // ============================================================
 
@@ -52,7 +49,7 @@ CORNER_R      = 4.0;   // 外形コーナー半径
 BOTTOM_FILLET = 1.5;   // 底面4辺のフィレット半径（合わせ面はシャープ保持）
 INNER_CORNER_R = CORNER_R - WALL;        // 内壁コーナー半径 = 2mm
 
-/* ─── 固定穴（対角2点）─── */
+/* ─── 固定穴（4コーナー）─── */
 MOUNT_INSET  = 9.0;  // コーナーからの内側オフセット（最小 9mm）
 MOUNT_HOLE_D = 4.5;  // クリアランス穴径（M3 ボルト用）
 MOUNT_CBORE_D= 9.0;  // カウンターボア径（M3 ボタンヘッドボルト頭）
@@ -69,19 +66,18 @@ PILOT_DEPTH = INSERT_L + 0.5;            // 下穴深さ = 8.5mm
 BOSS_H      = PILOT_DEPTH - BOT_T;       // 6.5mm
 BOSS_OD     = 10.0;  // ボス外径（≥ 2×INSERT_OD = 9.2mm）
 
-/* ─── 位置合わせ凸凹（南北のみ・合わせ面 楔形方式）─── */
-// 楔形: 台形（接線方向にテーパー）を法線方向に押し出した形状
-// 配置: 前後壁（南北）のみ。左右壁（東西）は平面。
-// 過剰拘束回避: Y方向=楔で位置決め / X方向=対角2点M3ボルトで拘束
-WEDGE_TAN_BASE = 10.0;         // 接線方向 底（合わせ面側）
-WEDGE_TAN_TIP  = 8.0;          // 接線方向 先端
-WEDGE_NORM     = WALL;         // 法線方向（壁厚いっぱい = 2.0mm）
-WEDGE_H        = 5.0;          // 突出高さ
-SOCK_CLEAR     = 0.2;          // 接線方向 片側クリアランス（FDM）
-SOCK_H         = WEDGE_H + 0.25;                      // 凹 深さ = 5.25
-SOCK_TAN_OPEN  = WEDGE_TAN_BASE + 2 * SOCK_CLEAR;     // 10.4（合わせ面側）
-SOCK_TAN_BOT   = WEDGE_TAN_TIP  + 2 * SOCK_CLEAR;     // 8.4（奥側）
-SOCK_NORM      = WEDGE_NORM;                          // 法線方向クリア無し = 2.0
+/* ─── 位置合わせ凸凹（E/W壁・合わせ面 ラップジョイント方式）─── */
+// 段継ぎ: E壁内側 1mm に舌（凸）、W壁内側 1mm に溝（凹）を配置。
+// 下ハーフ反転で凸↔凹が入れ替わり噛み合う（同一ハーフ設計）。
+STEP_DELTA   = 1.5;    // 段差高さ（mm）
+STEP_Y_START = 29;     // 舌/溝 Y 開始位置（mm）
+STEP_Y_END   = 43;     // 舌/溝 Y 終了位置（mm）
+STEP_CLEAR   = 0.35;   // FDM 片側クリア（バンプ頂点+0.3mm分+余裕0.05mm確保）
+
+// ---- ディテント (E1: 球バンプ) ----
+DETENT_BUMP_R  = 0.30;   // バンプ半径（舌上面に凸）
+DETENT_DIVOT_R = 0.45;   // ディンプル半径（溝天井に凹、CLEAR込み）
+DETENT_Y       = (STEP_Y_START + STEP_Y_END) / 2;  // = 36（ストローク中央）
 
 /* ─── 配線穴（合わせ面・半円切り欠き／合体で円形）─── */
 // 全4壁に配置（連接時 daisy-chain 対応）
@@ -105,14 +101,16 @@ cut_y = 50;            // [0:1:50]
 cut_z = 25;            // [0:1:25]
 
 /* [出力] */
-// 0: ビュー（並置）  1: ハーフ単体（STL出力用・1種類のみ）
+// 0: ビュー  1: ハーフ単体（STL出力用）
 render_part = 0;       // [0:ビュー, 1:ハーフ単体]
 // FDM 収縮補正: 穴径を指定値だけ拡大（ボス等の外形には不適用）
 hole_comp = 0.2;       // [0:0.05:0.5]
 
-// 対角2点: 前左 + 後右（指入れスペースは前右・後左の対角に確保）
+// 4コーナー: 前左・前右・後左・後右
 mount_pts = [
     [MOUNT_INSET,             MOUNT_INSET            ],  // 前左
+    [OUTER_W - MOUNT_INSET,   MOUNT_INSET            ],  // 前右
+    [MOUNT_INSET,             OUTER_D - MOUNT_INSET  ],  // 後左
     [OUTER_W - MOUNT_INSET,   OUTER_D - MOUNT_INSET  ]   // 後右
 ];
 
@@ -171,52 +169,49 @@ module wire_half_hole() {
 }
 
 // ============================================================
-//  モジュール: 楔形ヘルパ
-//    wedge      — 凸（底: tan_base×norm、先端: tan_tip×norm、高さ h）
-//                 X軸 = 接線方向（テーパー）、Y軸 = 法線方向（一定）、Z軸 = 突出方向
-//    wedge_socket — 凹（開口で広く・奥で狭い楔ソケット）
-//                 原点 = 合わせ面開口中心、-Z方向に掘る
+//  モジュール: ラップジョイント 舌（凸） — union() 内で呼ぶ
+//    E 壁（X = OUTER_W - WALL）内側 1mm に配置。
+//    合わせ面 Z=HALF_H を中心に ±STEP_DELTA/2 突出。
+//    反転した上ハーフでは W 壁に現れ、下ハーフの W 壁溝に噛み合う。
 // ============================================================
-// 楔: 底(tan_base × norm) → 先端(tan_tip × norm)、高さ h
-// X軸=接線方向（テーパー）、Y軸=法線方向（一定）、Z軸=突出
-module wedge(tan_base, tan_tip, norm, h) {
-    linear_extrude(height=h, scale=[tan_tip/tan_base, 1])
-        square([tan_base, norm], center=true);
-}
-
-// 凹: 接線テーパー付き（開口広く・奥狭く・凸と同方向テーパー）
-// Z=-d（奥）から Z=0.1（合わせ面より0.1mmオーバーラン）まで、接線方向に広がる
-module wedge_socket(tan_open, tan_bot, norm, d) {
-    translate([0, 0, -d])
-        linear_extrude(height = d + 0.1, scale = [tan_open / tan_bot, 1])
-            square([tan_bot, norm], center = true);
+module step_tongue() {
+    translate([OUTER_W - WALL, STEP_Y_START, HALF_H - STEP_DELTA / 2])
+        cube([1.0, STEP_Y_END - STEP_Y_START, STEP_DELTA]);
 }
 
 // ============================================================
-//  モジュール: 合わせ面の凸（bump）を追加 — union()内で呼ぶ
-//    rotate([180,0,180]) 反転後に凸↔凹が噛み合うよう座標を設計。
-//    前後壁はX位置で振り分け（反転でX→OUTER_W-X になるため入れ替わる）。
-//    左右壁（東西）は平面（M3ボルト対角2点で拘束・過剰拘束回避）。
+//  モジュール: ラップジョイント 溝（凹） — difference() 内で呼ぶ
+//    W 壁（X = 0〜WALL）内側 1mm に配置。
+//    STEP_CLEAR を片側に付与してFDM干渉を回避。
+//    X のオーバーラン -0.1mm は CGAL 演算誤差回避のため必須。
 // ============================================================
-module mating_bumps() {
-    // 前壁（Y=0側）凸: X = OUTER_W/4
-    translate([OUTER_W / 4, WALL / 2, HALF_H])
-        wedge(WEDGE_TAN_BASE, WEDGE_TAN_TIP, WEDGE_NORM, WEDGE_H);
-    // 後壁（Y=OUTER_D側）凸: X = OUTER_W*3/4（点対称）
-    translate([OUTER_W * 3 / 4, OUTER_D - WALL / 2, HALF_H])
-        wedge(WEDGE_TAN_BASE, WEDGE_TAN_TIP, WEDGE_NORM, WEDGE_H);
+module step_groove() {
+    translate([-0.1, STEP_Y_START - STEP_CLEAR, HALF_H - STEP_DELTA / 2 - STEP_CLEAR])
+        cube([
+            1.0 + STEP_CLEAR + 0.1,
+            (STEP_Y_END - STEP_Y_START) + 2 * STEP_CLEAR,
+            STEP_DELTA + 2 * STEP_CLEAR
+        ]);
 }
 
 // ============================================================
-//  モジュール: 合わせ面の凹（socket）を削る — difference()内で呼ぶ
+//  モジュール: ディテント バンプ（凸） — union() 内で呼ぶ
+//    下ハーフ E 壁・舌の上面中央に半球バンプ
+//    バンプ中心: (舌中央X, DETENT_Y, 舌上面Z=HALF_H+STEP_DELTA/2)
 // ============================================================
-module mating_sockets() {
-    // 前壁凹: X = OUTER_W*3/4
-    translate([OUTER_W * 3 / 4, WALL / 2, HALF_H])
-        wedge_socket(SOCK_TAN_OPEN, SOCK_TAN_BOT, SOCK_NORM, SOCK_H);
-    // 後壁凹: X = OUTER_W/4（点対称）
-    translate([OUTER_W / 4, OUTER_D - WALL / 2, HALF_H])
-        wedge_socket(SOCK_TAN_OPEN, SOCK_TAN_BOT, SOCK_NORM, SOCK_H);
+module detent_bump() {
+    translate([OUTER_W - WALL/2, DETENT_Y, HALF_H + STEP_DELTA/2])
+        sphere(r = DETENT_BUMP_R, $fn = 24);
+}
+
+// ============================================================
+//  モジュール: ディテント ディンプル（凹） — difference() 内で呼ぶ
+//    下ハーフ W 壁・溝の底面中央に半球ディンプル
+//    ディンプル中心: (溝中央X, DETENT_Y, 溝底面Z=HALF_H-STEP_DELTA/2-STEP_CLEAR)
+// ============================================================
+module detent_divot() {
+    translate([WALL/2, DETENT_Y, HALF_H - STEP_DELTA/2 - STEP_CLEAR])
+        sphere(r = DETENT_DIVOT_R, $fn = 24);
 }
 
 // ============================================================
@@ -224,7 +219,7 @@ module mating_sockets() {
 //    原点 = 底面外側・前左コーナー
 //    天面（Z = HALF_H 側）: ボタン穴 + カウンターボア（反転時に上に来る）
 //    底面（Z = 0 側）     : インサート下穴 + ボス（正立時に台座になる）
-//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（南北のみ楔形方式）
+//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（E/W壁ラップジョイント方式）
 // ============================================================
 module half_body() {
     difference() {
@@ -241,14 +236,15 @@ module half_body() {
                 wire_half_hole();
             }
 
-            // ② 内側ボス（底面板内側・対角2点）
+            // ② 内側ボス（底面板内側・4コーナー）
             for (p = mount_pts) {
                 translate([p[0], p[1], BOT_T])
                     cylinder(d = BOSS_OD, h = BOSS_H);
             }
 
-            // ③ 位置合わせ凸（南北のみ楔形方式）
-            mating_bumps();
+            // ③ ラップジョイント 舌（E壁内側・合わせ面±STEP_DELTA/2）
+            step_tongue();
+            detent_bump();
         }
 
         // ④ インサート下穴（底面外側から・底板 + ボスを貫通）
@@ -281,9 +277,6 @@ module half_body() {
         translate([OUTER_W / 2, OUTER_D / 2, -0.1])
             cylinder(d = BTN_HOLE_D + hole_comp, h = BOT_T + 0.2);
 
-        // ⑧ 位置合わせ凹（南北のみ楔形ソケット）
-        mating_sockets();
-
         // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
         // Y=4.5, X=OUTER_W/2+5 に "NongSoft LLC"（前左ボス φ10@(9,9) を回避し右にオフセット）
         translate([OUTER_W / 2 + 5, 4.5, BOT_T - 0.5 - 0.1])
@@ -293,6 +286,10 @@ module half_body() {
                      font   = "Liberation Sans:style=Bold",
                      halign = "center",
                      valign = "center");
+
+        // ⑧ ラップジョイント 溝（W壁内側・STEP_CLEAR片側付与）
+        step_groove();
+        detent_divot();
     }
 }
 
@@ -327,18 +324,19 @@ module main_model() {
 bolt_path = (BOT_T - CBORE_H) + INNER_H_HALF + INNER_H_HALF;
 recommended_bolt = ceil((bolt_path + INSERT_L) / 5) * 5;  // 5mm単位で切り上げ
 
-echo("=== PS-15 Box v7 上下同一ハーフ設計（開口カップ）===");
+echo("=== PS-15 Box v14 上下同一ハーフ設計（開口カップ）===");
 echo(str("外寸 W×D（組立時）:   ", OUTER_W, " × ", OUTER_D, " mm（コーナー R", CORNER_R, "）"));
 echo(str("外寸 H（組立時）:     ", 2 * HALF_H, " mm（各ハーフ ", HALF_H, " mm）"));
 echo(str("各ハーフ内高（開口）: ", INNER_H_HALF, " mm（底板 ", BOT_T, " mm + 開口内高 ", INNER_H_HALF, " mm）"));
 echo(str("総内高（組立時）:     ", 2 * INNER_H_HALF, " mm（BTN_DEPTH ", BTN_DEPTH, " mm に対して余裕 ", 2 * INNER_H_HALF - BTN_DEPTH, " mm）"));
 echo(str("底面板厚:             ", BOT_T, " mm（ボタン穴・cbore・インサート穴が集中）"));
-echo(str("内側ボス:             φ", BOSS_OD, " × H", BOSS_H, " mm（2箇所）"));
+echo(str("内側ボス:             φ", BOSS_OD, " × H", BOSS_H, " mm（4箇所）"));
 echo(str("インサート下穴:       φ", PILOT_D, " mm × ", PILOT_DEPTH, " mm 深（M3×φ", INSERT_OD, "×L", INSERT_L, " 熱圧入）"));
-echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（南北のみ各2点・点対称配置・接線クリア", SOCK_CLEAR, " mm／一定）"));
+echo(str("ラップジョイント: δ=", STEP_DELTA, " mm, Y=[", STEP_Y_START, ",", STEP_Y_END, "], CLEAR=", STEP_CLEAR, " mm（片側）"));
+echo(str("ディテント: バンプR=", DETENT_BUMP_R, ", ディンプルR=", DETENT_DIVOT_R, ", Y=", DETENT_Y, ", スライド余裕=", STEP_CLEAR - DETENT_BUMP_R, " mm"));
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
-echo(str("固定穴:               対角2点（前左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
+echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
 echo(str("M3 ボルト経路:        ", bolt_path, " mm（cbore残し ", BOT_T - CBORE_H, " mm + 上ハーフ内高 ", INNER_H_HALF, " mm + 下ハーフ内高 ", INNER_H_HALF, " mm）"));
 echo(str("推奨ボルト長:         M3×", recommended_bolt, "（インサート内噛み ", recommended_bolt - bolt_path, " mm / INSERT_L=", INSERT_L, " mm）"));
 
@@ -361,7 +359,6 @@ module section_cut(axis) {
 // ============================================================
 if (render_part == 1) {
     // ハーフ単体（STL出力用）: 天面を上にして原点に出力
-    // スライサーで「そのまま平置き」で印刷可（天面が上 = 印刷面は底面）
     half_body();
 } else if (show_section) {
     difference() {
