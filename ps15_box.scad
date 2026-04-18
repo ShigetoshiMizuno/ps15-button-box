@@ -25,16 +25,16 @@
 //  【配線】全4壁（前後左右）合わせ面に半円切り欠き（2ハーフ合体で円φ10mm）
 //          連接時（daisy-chain）に各方向へケーブルが通せる
 //
-//  【位置合わせ（東西壁のみ・合わせ面 楔形方式・点対称配置）】
-//    東西壁（左壁/右壁）のみ合わせ面（Z=HALF_H）に台形押出しの楔凸/凹を配置。
-//    南北壁（前壁/後壁）はフラット接合面（楔なし）。
-//    接線方向テーパー 10→8mm、法線方向 壁厚一杯 2.0mm、高さ 5mm。
-//    東西壁の楔は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
+//  【位置合わせ（東西壁のみ・逆台形キー方式・点対称配置）】
+//    東西壁（左壁/右壁）のみ合わせ面（Z=HALF_H）に逆台形（dovetail）キー凸/凹を配置。
+//    南北壁（前壁/後壁）はフラット接合面（キーなし）。
+//    接線方向テーパー 8→10mm（根元狭・先端広）、法線方向 壁厚一杯 2.0mm、高さ 5mm。
+//    東西壁のキーは rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 //    点対称配置:
 //      左壁  凸(D/4)  + 凹(3D/4)、右壁  凸(3D/4) + 凹(D/4)
 //      → 反射(x,y,z)→(x,D-y,2H-z) で 凸↔凹 が噛み合う
-//    Socket は接線テーパー付き（開口10.4→奥8.4mm、凸と同方向・クリア0.2mm／片側一定）
-//    凸のハの字 ＋ 凹の同方向テーパー ＝ 位置決めキー効果（接線方向の自動センタリング）
+//    Socket は逆向きテーパー付き（開口8.4（狭）→奥10.4mm（広）、凸と同方向・クリア0.2mm／片側一定）
+//    アンダーカット形状のため Z方向には抜けず、Y方向（接線）スライドで嵌合する（dovetail-slide）。
 //
 // ============================================================
 
@@ -71,18 +71,18 @@ PILOT_DEPTH = INSERT_L + 0.5;            // 下穴深さ = 8.5mm
 BOSS_H      = PILOT_DEPTH - BOT_T;       // 6.5mm
 BOSS_OD     = 10.0;  // ボス外径（≥ 2×INSERT_OD = 9.2mm）
 
-/* ─── 位置合わせ凸凹（東西壁のみ・合わせ面 楔形方式）─── */
-// 楔形: 台形（接線方向にテーパー）を法線方向に押し出した形状
-// 配置: 左右壁（東西）のみ。前後壁（南北）はフラット接合面（楔なし）。
+/* ─── 位置合わせ凸凹（東西壁のみ・合わせ面 逆台形キー方式）─── */
+// 逆台形（dovetail）: 根元（合わせ面側）狭く・先端広い台形を法線方向に押し出した形状
+// 配置: 左右壁（東西）のみ。前後壁（南北）はフラット接合面（キーなし）。
 // 東西壁は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
-WEDGE_TAN_BASE = 10.0;         // 接線方向 底（合わせ面側）
-WEDGE_TAN_TIP  = 8.0;          // 接線方向 先端
+WEDGE_TAN_BASE = 8.0;          // 接線方向 根元（合わせ面側・狭い）
+WEDGE_TAN_TIP  = 10.0;         // 接線方向 先端（広い）— 逆台形
 WEDGE_NORM     = WALL;         // 法線方向（壁厚いっぱい = 2.0mm）
 WEDGE_H        = 5.0;          // 突出高さ
 SOCK_CLEAR     = 0.2;          // 接線方向 片側クリアランス（FDM）
 SOCK_H         = WEDGE_H + 0.25;                      // 凹 深さ = 5.25
-SOCK_TAN_OPEN  = WEDGE_TAN_BASE + 2 * SOCK_CLEAR;     // 10.4（合わせ面側）
-SOCK_TAN_BOT   = WEDGE_TAN_TIP  + 2 * SOCK_CLEAR;     // 8.4（奥側）
+SOCK_TAN_OPEN  = WEDGE_TAN_BASE + 2 * SOCK_CLEAR;     // 8.4（合わせ面開口・狭い）
+SOCK_TAN_BOT   = WEDGE_TAN_TIP  + 2 * SOCK_CLEAR;     // 10.4（奥・広い）
 SOCK_NORM      = WEDGE_NORM;                          // 法線方向クリア無し = 2.0
 
 /* ─── 配線穴（合わせ面・半円切り欠き／合体で円形）─── */
@@ -175,21 +175,21 @@ module wire_half_hole() {
 }
 
 // ============================================================
-//  モジュール: 楔形ヘルパ
-//    wedge      — 凸（底: tan_base×norm、先端: tan_tip×norm、高さ h）
-//                 X軸 = 接線方向（テーパー）、Y軸 = 法線方向（一定）、Z軸 = 突出方向
-//    wedge_socket — 凹（開口で広く・奥で狭い楔ソケット）
+//  モジュール: 逆台形キー ヘルパ
+//    wedge      — 凸（根元: tan_base×norm ＜ 先端: tan_tip×norm、高さ h）
+//                 X軸 = 接線方向（根元→先端で広がる）、Y軸 = 法線方向（一定）、Z軸 = 突出方向
+//    wedge_socket — 凹（開口狭・奥広のアンダーカット dovetail ソケット）
 //                 原点 = 合わせ面開口中心、-Z方向に掘る
 // ============================================================
-// 楔: 底(tan_base × norm) → 先端(tan_tip × norm)、高さ h
-// X軸=接線方向（テーパー）、Y軸=法線方向（一定）、Z軸=突出
+// 逆台形凸: 根元(tan_base × norm) → 先端(tan_tip × norm)、高さ h （tan_tip > tan_base）
+// X軸=接線方向（根元→先端で広がる）、Y軸=法線方向（一定）、Z軸=突出
 module wedge(tan_base, tan_tip, norm, h) {
     linear_extrude(height=h, scale=[tan_tip/tan_base, 1])
         square([tan_base, norm], center=true);
 }
 
-// 凹: 接線テーパー付き（開口広く・奥狭く・凸と同方向テーパー）
-// Z=-d（奥）から Z=0.1（合わせ面より0.1mmオーバーラン）まで、接線方向に広がる
+// 逆台形凹: 開口狭・奥広（アンダーカット）・凸と同方向テーパー
+// Z=-d（奥・広い）から Z=0.1（合わせ面開口・狭い、0.1mmオーバーラン）まで、接線方向に絞り込む
 module wedge_socket(tan_open, tan_bot, norm, d) {
     translate([0, 0, -d])
         linear_extrude(height = d + 0.1, scale = [tan_open / tan_bot, 1])
@@ -200,8 +200,8 @@ module wedge_socket(tan_open, tan_bot, norm, d) {
 //  モジュール: 合わせ面の凸（bump）を追加 — union()内で呼ぶ
 //    rotate([180,0,180]) 反転後に凸↔凹が噛み合うよう座標を設計。
 //    東西壁（左右）のみ配置。Y位置で振り分け（反転でY→OUTER_D-Y になるため入れ替わる）。
-//    南北壁（前後）は楔なし・フラット接合面。
-//    東西壁の楔は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
+//    南北壁（前後）はキーなし・フラット接合面。
+//    東西壁の逆台形キーは rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 // ============================================================
 module mating_bumps() {
     // 左壁（X=0側）凸: Y = OUTER_D/4
@@ -234,7 +234,7 @@ module mating_sockets() {
 //    原点 = 底面外側・前左コーナー
 //    天面（Z = HALF_H 側）: ボタン穴 + カウンターボア（反転時に上に来る）
 //    底面（Z = 0 側）     : インサート下穴 + ボス（正立時に台座になる）
-//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（東西2壁楔形方式・南北フラット）
+//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（東西2壁 逆台形キー方式・南北フラット）
 // ============================================================
 module half_body() {
     difference() {
@@ -257,7 +257,7 @@ module half_body() {
                     cylinder(d = BOSS_OD, h = BOSS_H);
             }
 
-            // ③ 位置合わせ凸（東西2壁楔形方式）
+            // ③ 位置合わせ凸（東西2壁 逆台形キー方式）
             mating_bumps();
         }
 
@@ -291,15 +291,16 @@ module half_body() {
         translate([OUTER_W / 2, OUTER_D / 2, -0.1])
             cylinder(d = BTN_HOLE_D + hole_comp, h = BOT_T + 0.2);
 
-        // ⑧ 位置合わせ凹（東西2壁楔形ソケット）
+        // ⑧ 位置合わせ凹（東西2壁 逆台形キーソケット）
         mating_sockets();
 
-        // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
-        // Y=4.5, X=OUTER_W/2+5 に "NongSoft LLC"（前左ボス φ10@(9,9) を回避し右にオフセット）
-        translate([OUTER_W / 2 + 5, 4.5, BOT_T - 0.5 - 0.1])
-            linear_extrude(height = 0.6)
-                text("NongSoft LLC",
-                     size   = 3.0,
+        // ⑦ 底面内側刻印（底板内面から 1.0mm 彫刻／残し厚 1.0mm）
+        // 配置: 前壁内側(Y=2) と ボタン穴φ30縁(Y=8.5) の間の水平ストリップ中央
+        // "NongSoft"（8文字）× size 2.0 → 幅 ≈10mm で左右ボスから十分にクリア
+        translate([OUTER_W / 2, 5, BOT_T - 1.0 - 0.1])
+            linear_extrude(height = 1.1)
+                text("NongSoft",
+                     size   = 2.0,
                      font   = "Liberation Sans:style=Bold",
                      halign = "center",
                      valign = "center");
@@ -345,7 +346,7 @@ echo(str("総内高（組立時）:     ", 2 * INNER_H_HALF, " mm（BTN_DEPTH ",
 echo(str("底面板厚:             ", BOT_T, " mm（ボタン穴・cbore・インサート穴が集中）"));
 echo(str("内側ボス:             φ", BOSS_OD, " × H", BOSS_H, " mm（4箇所）"));
 echo(str("インサート下穴:       φ", PILOT_D, " mm × ", PILOT_DEPTH, " mm 深（M3×φ", INSERT_OD, "×L", INSERT_L, " 熱圧入）"));
-echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（東西2壁各2点・点対称配置・南北フラット・接線クリア", SOCK_CLEAR, " mm／一定）"));
+echo(str("位置合わせ凸凹:       逆台形キー 接線 ", WEDGE_TAN_BASE, "(根元)→", WEDGE_TAN_TIP, "(先端) × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "(開口)→", SOCK_TAN_BOT, "(奥) × ", SOCK_NORM, " × ", SOCK_H, " mm（東西2壁各2点・点対称配置・南北フラット・接線クリア", SOCK_CLEAR, " mm／一定・アンダーカット）"));
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
 echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
