@@ -25,14 +25,14 @@
 //  【配線】全4壁（前後左右）合わせ面に半円切り欠き（2ハーフ合体で円φ10mm）
 //          連接時（daisy-chain）に各方向へケーブルが通せる
 //
-//  【位置合わせ（4壁・合わせ面 楔形方式・点対称配置）】
-//    前後左右すべての壁の合わせ面（Z=HALF_H）に台形押出しの楔凸/凹を配置。
+//  【位置合わせ（東西壁のみ・合わせ面 楔形方式・点対称配置）】
+//    東西壁（左壁/右壁）のみ合わせ面（Z=HALF_H）に台形押出しの楔凸/凹を配置。
+//    南北壁（前壁/後壁）はフラット接合面（楔なし）。
 //    接線方向テーパー 10→8mm、法線方向 壁厚一杯 2.0mm、高さ 5mm。
-//    東西壁（左右）にも楔を追加し、rotate([0,0,90]) で接線方向をY軸方向に合わせる。
+//    東西壁の楔は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 //    点対称配置:
-//      前壁  凸(W/4)  + 凹(3W/4)、後壁  凸(3W/4) + 凹(W/4)
 //      左壁  凸(D/4)  + 凹(3D/4)、右壁  凸(3D/4) + 凹(D/4)
-//      → 反射(x,y,z)→(W-x,y,2H-z)/(x,D-y,2H-z) で 凸↔凹 が噛み合う
+//      → 反射(x,y,z)→(x,D-y,2H-z) で 凸↔凹 が噛み合う
 //    Socket は接線テーパー付き（開口10.4→奥8.4mm、凸と同方向・クリア0.2mm／片側一定）
 //    凸のハの字 ＋ 凹の同方向テーパー ＝ 位置決めキー効果（接線方向の自動センタリング）
 //
@@ -71,9 +71,9 @@ PILOT_DEPTH = INSERT_L + 0.5;            // 下穴深さ = 8.5mm
 BOSS_H      = PILOT_DEPTH - BOT_T;       // 6.5mm
 BOSS_OD     = 10.0;  // ボス外径（≥ 2×INSERT_OD = 9.2mm）
 
-/* ─── 位置合わせ凸凹（4壁・合わせ面 楔形方式）─── */
+/* ─── 位置合わせ凸凹（東西壁のみ・合わせ面 楔形方式）─── */
 // 楔形: 台形（接線方向にテーパー）を法線方向に押し出した形状
-// 配置: 前後壁（南北）＋ 左右壁（東西）の4壁すべて。
+// 配置: 左右壁（東西）のみ。前後壁（南北）はフラット接合面（楔なし）。
 // 東西壁は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 WEDGE_TAN_BASE = 10.0;         // 接線方向 底（合わせ面側）
 WEDGE_TAN_TIP  = 8.0;          // 接線方向 先端
@@ -199,17 +199,11 @@ module wedge_socket(tan_open, tan_bot, norm, d) {
 // ============================================================
 //  モジュール: 合わせ面の凸（bump）を追加 — union()内で呼ぶ
 //    rotate([180,0,180]) 反転後に凸↔凹が噛み合うよう座標を設計。
-//    前後壁はX位置で振り分け（反転でX→OUTER_W-X になるため入れ替わる）。
-//    左右壁（東西）はY位置で振り分け（反転でY→OUTER_D-Y になるため入れ替わる）。
+//    東西壁（左右）のみ配置。Y位置で振り分け（反転でY→OUTER_D-Y になるため入れ替わる）。
+//    南北壁（前後）は楔なし・フラット接合面。
 //    東西壁の楔は rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 // ============================================================
 module mating_bumps() {
-    // 前壁（Y=0側）凸: X = OUTER_W/4
-    translate([OUTER_W / 4, WALL / 2, HALF_H])
-        wedge(WEDGE_TAN_BASE, WEDGE_TAN_TIP, WEDGE_NORM, WEDGE_H);
-    // 後壁（Y=OUTER_D側）凸: X = OUTER_W*3/4（点対称）
-    translate([OUTER_W * 3 / 4, OUTER_D - WALL / 2, HALF_H])
-        wedge(WEDGE_TAN_BASE, WEDGE_TAN_TIP, WEDGE_NORM, WEDGE_H);
     // 左壁（X=0側）凸: Y = OUTER_D/4
     translate([WALL / 2, OUTER_D / 4, HALF_H])
         rotate([0, 0, 90])
@@ -225,12 +219,6 @@ module mating_bumps() {
 //    東西壁の凹も rotate([0,0,90]) で接線方向をY軸方向に合わせる。
 // ============================================================
 module mating_sockets() {
-    // 前壁凹: X = OUTER_W*3/4
-    translate([OUTER_W * 3 / 4, WALL / 2, HALF_H])
-        wedge_socket(SOCK_TAN_OPEN, SOCK_TAN_BOT, SOCK_NORM, SOCK_H);
-    // 後壁凹: X = OUTER_W/4（点対称）
-    translate([OUTER_W / 4, OUTER_D - WALL / 2, HALF_H])
-        wedge_socket(SOCK_TAN_OPEN, SOCK_TAN_BOT, SOCK_NORM, SOCK_H);
     // 左壁凹: Y = OUTER_D*3/4（点対称）
     translate([WALL / 2, OUTER_D * 3 / 4, HALF_H])
         rotate([0, 0, 90])
@@ -246,7 +234,7 @@ module mating_sockets() {
 //    原点 = 底面外側・前左コーナー
 //    天面（Z = HALF_H 側）: ボタン穴 + カウンターボア（反転時に上に来る）
 //    底面（Z = 0 側）     : インサート下穴 + ボス（正立時に台座になる）
-//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（4壁楔形方式）
+//    開口端（Z = HALF_H 側）: 位置合わせ凸凹（東西2壁楔形方式・南北フラット）
 // ============================================================
 module half_body() {
     difference() {
@@ -269,7 +257,7 @@ module half_body() {
                     cylinder(d = BOSS_OD, h = BOSS_H);
             }
 
-            // ③ 位置合わせ凸（4壁楔形方式）
+            // ③ 位置合わせ凸（東西2壁楔形方式）
             mating_bumps();
         }
 
@@ -303,7 +291,7 @@ module half_body() {
         translate([OUTER_W / 2, OUTER_D / 2, -0.1])
             cylinder(d = BTN_HOLE_D + hole_comp, h = BOT_T + 0.2);
 
-        // ⑧ 位置合わせ凹（4壁楔形ソケット）
+        // ⑧ 位置合わせ凹（東西2壁楔形ソケット）
         mating_sockets();
 
         // ⑦ 底面内側刻印（ボタン穴の外側・底板内面から 0.5mm 彫刻）
@@ -357,7 +345,7 @@ echo(str("総内高（組立時）:     ", 2 * INNER_H_HALF, " mm（BTN_DEPTH ",
 echo(str("底面板厚:             ", BOT_T, " mm（ボタン穴・cbore・インサート穴が集中）"));
 echo(str("内側ボス:             φ", BOSS_OD, " × H", BOSS_H, " mm（4箇所）"));
 echo(str("インサート下穴:       φ", PILOT_D, " mm × ", PILOT_DEPTH, " mm 深（M3×φ", INSERT_OD, "×L", INSERT_L, " 熱圧入）"));
-echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（4壁各2点・点対称配置・接線クリア", SOCK_CLEAR, " mm／一定）"));
+echo(str("位置合わせ凸凹:       楔 接線 ", WEDGE_TAN_BASE, "→", WEDGE_TAN_TIP, " × 法線 ", WEDGE_NORM, " × H", WEDGE_H, " mm / 凹 ", SOCK_TAN_OPEN, "→", SOCK_TAN_BOT, " × ", SOCK_NORM, " × ", SOCK_H, " mm（東西2壁各2点・点対称配置・南北フラット・接線クリア", SOCK_CLEAR, " mm／一定）"));
 echo(str("配線穴:               φ", WIRE_D, " mm × 4壁（前後左右・合わせ面半円／連接対応）"));
 echo(str("底面フィレット:       R", BOTTOM_FILLET, " mm（接地4辺・合わせ面はシャープ）"));
 echo(str("固定穴:               4コーナー（前左+前右+後左+後右、MOUNT_INSET=", MOUNT_INSET, " mm）"));
